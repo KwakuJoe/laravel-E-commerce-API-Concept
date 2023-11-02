@@ -19,11 +19,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-// tasks
-// Route::middleware(['auth:sanctum'])->group(function () {
-//     Route::apiResource('/tasks', TaskController::class);
-//     Route::get('/products', [ProductController::class,'index']);
-// });
+
 
 // Current logged user
 Route::middleware('auth:sanctum')->get('/auth/user', function (Request $request) {
@@ -41,24 +37,18 @@ Route::controller(AuthController::class)->group(function () {
 });
 
 // products
-// Route::middleware(['auth:sanctum'])->controller(ProductController::class)->group(function () {
-//     Route::get('/products', 'index');
-//     Route::get('/product/{id}', 'showProduct');
-//     Route::post('/create-product', 'createProduct');
-//     Route::patch('/update-product/{id}', 'updateProduct');
-//     Route::post('/update-product-image/{user_id}/{product_id}', 'updateProductImage');
-// });
-
-// Route::middleware(['auth:santum'])->group(function () {
-// });
+Route::middleware(['auth:sanctum'])->controller(ProductController::class)->group(function () {
+    Route::get('/products', 'index');
+    Route::get('/product/{id}', 'showProduct');
+    Route::post('/create-product', 'createProduct');
+    Route::patch('/update-product/{id}', 'updateProduct');
+    Route::post('/update-product-image/{image_id}/{product_id}', 'updateProductImage');
+    Route::delete('/delete-product/{product_id}', 'deleteProduct');
+});
 
 
-// projecs
-// Route::get('/get-all', [ProjectController::class, 'index']);
-// Route::get('/get-all/{id}', [ProjectController::class, 'getPhoneById']);
-// Route::get('/connect-external-api', [ProjectController::class, 'connetExternalApi']);
-// Route::post('/postHttp', [ProjectController::class, 'postHttp']);
-// Route::get('/connect-external-api-http', [ProjectController::class, 'connectHttp']);
-// Route::post('/post-external-api', [ProjectController::class, 'postToExternalApi']);
+
+
+
 
 

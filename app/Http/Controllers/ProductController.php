@@ -14,10 +14,21 @@ use Illuminate\Support\Str;
 use Spatie\QueryBuilder\AllowedInclude;
 use Spatie\QueryBuilder\QueryBuilder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Auth;
+
+
 
 
 class ProductController extends Controller
 {
+
+      /**
+     * Update the given blog post.
+     *
+     * @throws \Illuminate\Auth\Access\AuthorizationException
+     */
+
     public function index(){
 
         try {
@@ -82,15 +93,24 @@ class ProductController extends Controller
                 foreach($request->file('images') as $image){
 
                      $name = str()->uuid(). '.' . $image->getClientOriginalExtension();
+                     $destination_path = 'images/products';
+
+                    //  *** make sure you set the default  disk to public in filesystem **8 //
 
                     //  Storage::putFileAs('products', $image, $name, ['disk' => 'products', 'visibility' => 'public']);
-                     Storage::putFileAs('products', $image, $name);
-                    //  Storage::disk('public')->put('products', $image, $name);
+                    //  Storage::putFileAs('products', $image, $name, 'public');
+
+                    //  $contents = file_get_contents($image->getRealPath());
+                    //  $name =  Storage::put('products', $contents);
                     //  $image->move(public_path('images'), $imageName);
+
+                    // $path = Storage::put('photos', $image );
+                    $path = $image->storeAs($destination_path, $name);
+
 
                     ProductImages::create([
                         'product_id' => $product->id,
-                        'file_path' => $name,
+                        'file_path' => $path,
                     ]);
 
                 }
@@ -119,7 +139,7 @@ class ProductController extends Controller
                 'data' => [
                     'product' => $product,
                     'product_images' => $images,
-                    'user' => $user
+                    'user' => $user,
                     ]
                 ], 200);
 
@@ -173,7 +193,8 @@ class ProductController extends Controller
 
 
     // updae product
-    public function updateProduct(UpdateProductRequest $request, $id){
+    public function updateProduct(UpdateProductRequest $request, $id,){
+
 
         try{
 
@@ -188,6 +209,10 @@ class ProductController extends Controller
                 ], 404);
             }
 
+            // check authorization
+            if ($request->user()->cannot('update', $product)) {
+                return 'un-authorize';
+            }
             // // update the product
             $product->update([
                 'name' => $request->name,
@@ -220,17 +245,17 @@ class ProductController extends Controller
     }
 
 
-    public function updateProductImage(Request $request, $id, $product_id){
+    public function updateProductImage(Request $request, $image_id, $product_id){
 
         try{
 
             // validate
             $request->validate([
-                'image.' => 'image|mimes:jpeg,png,gif|max:5120',
+                'image' => 'image|mimes:jpeg,png,gif|max:5120',
             ]);
 
             // find image
-            $image = QueryBuilder::for(ProductImages::class)->where('id', $id)->first();
+            $image = QueryBuilder::for(ProductImages::class)->where('id', $image_id)->first();
 
             // check if image exits
             if(!$image){
@@ -244,24 +269,24 @@ class ProductController extends Controller
             // if request has upload file
             if($request->hasFile('image')){
                 // name the inocoming request file
-                $file = $request->file('image');
 
-               // generate name for file
-                $name = str()->uuid(). '.' . $file->getClientOriginalExtension();
+                $new_image = $request->file('image');
 
-                // dtore file in products folder
-                Storage::putFileAs('products', $file, $name, ['disk' => 'public', 'visibility' => 'public']);
+                $name = str()->uuid(). '.' . $new_image->getClientOriginalExtension();
+                $destination_path = 'images/products';
 
-                // delete the previous image from files
-                Storage::disk('public')->delete('products/1acd4a5b-1f70-4c1d-b2b6-ce6732fa9c53.png');
-                // Storage::delete('products'.$image->file_path);
+                //delet old file
+                $old_file_path = $image->file_path;
+                Storage::delete($old_file_path);
+
+
+                // store new file
+                $path = $new_image->storeAs($destination_path, $name);
 
                 // update file name in ddb
                 $image->product_id = $product_id;
-                $image->file_path = $name;
+                $image->file_path = $path;
                 $image->save();
-
-
 
 
                 return response()->json([
@@ -270,9 +295,15 @@ class ProductController extends Controller
                     'data'=> $image
                 ], 200);
 
-            }
+            }else{
 
-            return $id;
+                return response()->json([
+                    'status'=> 'failed',
+                    'message'=> 'Please make sure file is uploaded',
+                    'data'=> null
+                ], 200);
+
+            }
 
 
         }catch(\Exception $e){
@@ -285,16 +316,55 @@ class ProductController extends Controller
 
         }
 
-
-
-
-
-
-
-
-        // $image->update([
-        //     'name' =>
-        // ]);
-
     }
+
+    public function deleteProduct($product_id){
+
+        try{
+
+            // find image
+            $product = QueryBuilder::for(Product::class)->where('id', $product_id)->first();
+
+            if(!$product){
+                return response()->json([
+                    'status'=> 'failed',
+                    'message'=> 'product not found 404',
+                    'data'=> null
+                ], 404);
+            }
+
+            $product_images = QueryBuilder::for(ProductImages::class)->where('product_id', $product->id)->get();
+
+            // loop image and delete them
+            foreach($product_images as $image){
+                // delete image in db
+                $image->delete();
+
+                // delete actual image file in server
+                //reason for commeting is i have placed the deleting in the productImage model
+                // its a booted function, once there is a delete on the model, it deletes the actual file too. you can handle it manually in the controller , or leave it automatically in the model
+
+                // Storage::delete($image->file_path);
+
+            }
+
+            // delete the product its self
+            $product->delete();
+
+            return response()->json([
+                'status'=> 'success',
+                'message'=> 'product $ images deleted successful',
+                'data'=> $product
+            ], 200);
+
+
+        }catch(\Exception $e){
+            return response()->json([
+                'status'=> 'failed',
+                'message' => $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
+    }
+
 }
