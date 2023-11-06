@@ -47,9 +47,15 @@ class User extends Authenticatable
         'isAdmin' => 'boolean',
     ];
 
-
+    // relations ship between users & produts
     public function products(): HasMany
     {
         return $this->hasMany(Product::class);
+    }
+
+       // relations between Order & Order Items
+    public function orders(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
     }
 }

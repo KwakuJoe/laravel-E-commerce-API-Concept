@@ -28,17 +28,11 @@ class PasswordResetController extends Controller
 
         }
 
-
         return view('password.reset-password', [
             'token' => $token,
             'email' => $email
         ]);
 
-        // return response()->json([
-        //     'status'=> 'success',
-        //     'message' => 'Reset password working',
-        //     'data' => $token
-        // ]);
     }
 
     public function updatePassword(UpdatePasswordRequest $request){
@@ -74,10 +68,6 @@ class PasswordResetController extends Controller
             return redirect()->back()->with('failed', 'Error, trying to update password, try again?');
 
         }
-
-
-
-
 
     }
 

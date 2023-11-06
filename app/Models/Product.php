@@ -38,4 +38,10 @@ class Product extends Model
         return $this->belongsTo(User::class);
     }
 
+    // inverse relationshp between order_item and product
+    public function order_item(): BelongsTo
+    {
+        return $this->belongsTo(OrderItem::class);
+    }
+
 }

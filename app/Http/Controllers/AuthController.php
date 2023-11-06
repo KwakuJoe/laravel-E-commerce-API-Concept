@@ -181,6 +181,37 @@ class AuthController extends Controller
     }
 
 
+    public function verifyEmail( Request $request, $token, ){
+
+        if (!$request->hasValidSignature()) {
+            // abort(401);
+            return view('verify.email-verified-error');
+        }
+
+            // decrypt token
+            $decrypted = Crypt::decryptString($token);
+
+            // return view('verify.email-verified');
+            $user = User::where('email', $decrypted)->first();
+
+            // if no user found direct 404;
+            if(!$user){
+                return view('404.404');
+            }
+
+            // empty rember me token
+            $user->email_verification_token = null;
+
+            // filed verified at with current time
+            $user->email_verified_at = Carbon::now();
+
+            $user->save();
+
+            // show this page
+            return view('verify.email-verified');
+    }
+
+
     public function forgetPassword(ForgetPasswordRequest $request){
 
         try {

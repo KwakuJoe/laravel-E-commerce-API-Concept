@@ -198,6 +198,9 @@ class ProductController extends Controller
 
         try{
 
+            //
+            $validatedData = $request->validated();
+
             //  $product = Product::where('id', $id)->first();
             $product = QueryBuilder::for(Product::class)->where('id', $id)->first();
 
@@ -210,27 +213,35 @@ class ProductController extends Controller
             }
 
             // check authorization
-            if ($request->user()->cannot('update', $product)) {
-                return 'un-authorize';
-            }
-            // // update the product
-            $product->update([
-                'name' => $request->name,
-                'user_id'=> $request->user_id,
-                'category_id'=> $request->category_id,
-                'store_id' => $request->store_id,
-                'description' => $request->description,
-                'price' => $request->price,
-            ]);
+            if (!Gate::allows('update-delete-product', $product)) {
 
-            // // save changes
-            $product->save();
+                return response()->json([
+                    'status'=> 'failed',
+                    'message' => 'You are not authorized to perform this action',
+                    'data' => null
+                ], 403);
 
-            return response()->json([
-                'status'=> 'success',
-                'message'=> 'product updated successfull',
-                'data'=> $product
-            ], 200);
+            }else{
+
+                 // update the product
+                $product->update([
+                    'name' => $validatedData['name'],
+                    'user_id'=> $validatedData['user_id'],
+                    'category_id'=> $validatedData['category_id'],
+                    'store_id' => $validatedData['store_id'],
+                    'description' => $validatedData['description'],
+                    'price' => $validatedData['price'],
+                ]);
+
+                // // save changes
+                $product->save();
+
+                return response()->json([
+                    'status'=> 'success',
+                    'message'=> 'product updated successfull',
+                    'data'=> $product
+                  ], 200);
+                }
 
         }catch(\Exception $e){
 
@@ -257,6 +268,9 @@ class ProductController extends Controller
             // find image
             $image = QueryBuilder::for(ProductImages::class)->where('id', $image_id)->first();
 
+            // get the product the image belngs to
+            $product = QueryBuilder::for(Product::class)->where('id', $image->product_id)->first();
+
             // check if image exits
             if(!$image){
                 return response()->json([
@@ -266,44 +280,58 @@ class ProductController extends Controller
                 ], 404);
             }
 
-            // if request has upload file
-            if($request->hasFile('image')){
-                // name the inocoming request file
-
-                $new_image = $request->file('image');
-
-                $name = str()->uuid(). '.' . $new_image->getClientOriginalExtension();
-                $destination_path = 'images/products';
-
-                //delet old file
-                $old_file_path = $image->file_path;
-                Storage::delete($old_file_path);
-
-
-                // store new file
-                $path = $new_image->storeAs($destination_path, $name);
-
-                // update file name in ddb
-                $image->product_id = $product_id;
-                $image->file_path = $path;
-                $image->save();
-
-
-                return response()->json([
-                    'status'=> 'success',
-                    'message'=> 'Image updated successful',
-                    'data'=> $image
-                ], 200);
-
-            }else{
+            if (!Gate::allows('update-delete-product', $product)) {
 
                 return response()->json([
                     'status'=> 'failed',
-                    'message'=> 'Please make sure file is uploaded',
-                    'data'=> null
-                ], 200);
+                    'message' => 'You are not authorize to perform this action',
+                    'data' => null
+                ], 403);
+
+            }else{
+
+                // if request has upload file
+                if($request->hasFile('image')){
+                    // name the inocoming request file
+
+                    $new_image = $request->file('image');
+
+                    $name = str()->uuid(). '.' . $new_image->getClientOriginalExtension();
+                    $destination_path = 'images/products';
+
+                    //delet old file
+                    $old_file_path = $image->file_path;
+                    Storage::delete($old_file_path);
+
+
+                    // store new file
+                    $path = $new_image->storeAs($destination_path, $name);
+
+                    // update file name in ddb
+                    $image->product_id = $product_id;
+                    $image->file_path = $path;
+                    $image->save();
+
+
+                    return response()->json([
+                        'status'=> 'success',
+                        'message'=> 'Image updated successful',
+                        'data'=> $image
+                    ], 200);
+
+                }else{
+
+                    return response()->json([
+                        'status'=> 'failed',
+                        'message'=> 'Please make sure file is uploaded',
+                        'data'=> null
+                    ], 200);
+
+                }
+
 
             }
+
 
 
         }catch(\Exception $e){
@@ -318,7 +346,7 @@ class ProductController extends Controller
 
     }
 
-    public function deleteProduct($product_id){
+    public function deleteProduct($product_id, Request $request){
 
         try{
 
@@ -331,6 +359,14 @@ class ProductController extends Controller
                     'message'=> 'product not found 404',
                     'data'=> null
                 ], 404);
+            }
+
+            if ($request->user()->cannot('delete', $product)) {
+                return response()->json([
+                    'status' => 'failed',
+                    'message' => 'You are not authoriz to perform this action',
+                    'data' => null
+                ], 403);
             }
 
             $product_images = QueryBuilder::for(ProductImages::class)->where('product_id', $product->id)->get();

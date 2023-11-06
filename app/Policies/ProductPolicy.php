@@ -40,6 +40,11 @@ class ProductPolicy
         return $user->id == $product->user_id;
     }
 
+        /**
+     * Determine whether the user can update the image model.
+     */
+
+
     /**
      * Determine whether the user can delete the model.
      */
