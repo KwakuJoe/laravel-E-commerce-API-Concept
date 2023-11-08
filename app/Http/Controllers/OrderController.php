@@ -4,11 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Enums\OrderStatus;
 use App\Http\Requests\OrderRequest;
-use App\Jobs\SendOrderCreatedMailJob;
+use App\Jobs\OrderCreated;
 use App\Mail\OrderCreatedMail;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\User;
+use App\Notifications\OrderStatusUpdateNotification;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Carbon;
@@ -16,6 +17,8 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rules\Enum;
 use Ramsey\Uuid\Uuid;
 use Spatie\QueryBuilder\QueryBuilder;
+use Illuminate\Support\Facades\Gate;
+
 
 class OrderController extends Controller
 {
@@ -119,33 +122,23 @@ class OrderController extends Controller
 
             $updated_order->save();
 
-            $userId = $validated['user_id'];
+            // $userId = $validated['user_id'];
 
             // noo need for this, review later
-            $user = QueryBuilder::for(User::class)->where('id', $userId)->first();
+            // $user = QueryBuilder::for(User::class)->where('id', $userId)->first();
+            $user = User::where('id', $validated['user_id'])->first();
 
 
             // send email to user
-            // $message = (new OrderCreatedMail($order, $user))
-            //     // ->onConnection('sqs')
-            //     ->onQueue('emails');
-
-            // SendOrderCreatedMailJob::dispatch($updated_order, $user);
-
-            dispatch(new SendOrderCreatedMailJob($updated_order, $user,));
-            // $email =  new OrderCreatedMail($order, $user);
-
-            // Mail::to($user->email)->send($email);
+            $email =  new OrderCreatedMail($updated_order, $user);
+            Mail::to($user->email)->queue($email);
 
 
             return response()->json([
                 'status'=> 'success',
                 'message' => 'order created successfully',
-                'total_amount' => $total_amount,
-                'data' => [
-                    'order_info' => $updated_order,
-                    'order_items' => $order_items_array
-                ]
+                // 'total_amount' => $total_amount,
+                'data' => $updated_order
             ], 200);
 
         }catch(\Exception $e){
@@ -191,34 +184,56 @@ class OrderController extends Controller
 
         try{
 
-            $request->validate([
-                'status' => ['required', new Enum(OrderStatus::class)],
-                // 'order_status' => ['required', new EnumValue(['pending', 'processing', 'shipped', 'delivered'])],
-
-            ]);
-
-            $order = QueryBuilder::for(Order::class)->where('id', $order_id)->first();
-
-            if(!$order){
+            if (!Gate::allows('delete-create-update-category')) {
 
                 return response()->json([
-                    'status'=> 'failed',
-                    'message'=> 'Order not foumd',
+                    'status' => 'failed',
+                    'message' => 'Authorization failed! You are not authorized to perform this action',
                     'data' => null
-                ], 404);
+                ], 403);
+
+            }else{
+
+                $request->validate([
+                    'status' => ['required', new Enum(OrderStatus::class)],
+                    // 'order_status' => ['required', new EnumValue(['pending', 'processing', 'shipped', 'delivered'])],
+
+                ]);
+
+                $order = QueryBuilder::for(Order::class)->where('id', $order_id)->first();
+
+                if(!$order){
+
+                    return response()->json([
+                        'status'=> 'failed',
+                        'message'=> 'Order not foumd',
+                        'data' => null
+                    ], 404);
+                }
+
+                // $order->update([
+                //     'status'=> $request->status
+                // ]);
+                $order->status = $request->input('status');
+                $order->save();
+
+                // find the owner if the order & send email notificatio
+                $user = QueryBuilder::for(User::class)->where('id', $order->user_id)->first();
+
+                    // send notification after a minutes
+                $delay = now()->addMinutes(1);
+                $user->notify((new OrderStatusUpdateNotification($order, $user))->delay($delay));
+
+
+
+                return response()->json([
+                    'status'=> 'success',
+                    'message'=> 'Order Status updated succesfully',
+                    'data' => $order
+                ], 200);
+
+
             }
-
-            // $order->update([
-            //     'status'=> $request->status
-            // ]);
-            $order->status = $request->input('status');
-            $order->save();
-
-            return response()->json([
-                'status'=> 'success',
-                'message'=> 'Order Status updated succesfully',
-                'data' => $order
-            ], 200);
 
         }catch(\Exception $e){
 

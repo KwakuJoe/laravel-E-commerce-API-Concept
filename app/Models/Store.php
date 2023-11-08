@@ -19,6 +19,10 @@ class Store extends Model
     ] ;
 
     protected $casts = [
-        "is_verified" => "boolean"
+        "is_verified" => "boolean",
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
+
+
 }

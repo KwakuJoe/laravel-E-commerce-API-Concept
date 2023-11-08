@@ -24,6 +24,12 @@ class Order extends Model
     'status'
    ];
 
+   protected $casts = [
+    'order_date' => 'datetime',
+    'created_at' => 'datetime',
+    'updated_at' => 'datetime',
+];
+
    // relations between Order & Order Items
    public function order_items(): HasMany
    {

@@ -18,6 +18,12 @@ class OrderItem extends Model
         'price'
     ];
 
+    protected $casts = [
+        // 'order_date' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
         // inverse of relation order - order_items
         public function order(): BelongsTo
         {

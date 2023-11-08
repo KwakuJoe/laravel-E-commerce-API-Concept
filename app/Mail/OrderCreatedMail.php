@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -9,19 +10,22 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class OrderCreatedMail extends Mailable
+class OrderCreatedMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
     /**
      * Create a new message instance.
      */
-    // public $order;
-    // public $user;
-    public function __construct()
+    public $order;
+    public $user;
+
+    public function __construct($order, $user)
     {
-        // $this->order = $order;
-        // $this->$user = $user;
+        $this->order = $order;
+        $this->user = $user;
+
+
     }
 
     /**

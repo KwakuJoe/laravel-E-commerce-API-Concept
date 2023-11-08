@@ -12,4 +12,10 @@ class Category extends Model
     protected $fillable = [
         "name",
     ] ;
+
+    protected $casts = [
+        // 'expired_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
 }

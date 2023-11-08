@@ -18,6 +18,12 @@ class ProductImages extends Model
         "file_path",
     ];
 
+    protected $casts = [
+        // 'order_date' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
     // inverse relation between product and it images
 
     public function product(): BelongsTo

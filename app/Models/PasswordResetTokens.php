@@ -15,6 +15,12 @@ class PasswordResetTokens extends Model
         'created_at'
     ] ;
 
+    protected $casts = [
+        'order_date' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
     public $table = 'password_reset_tokens';
     public $timestamps = false;
 

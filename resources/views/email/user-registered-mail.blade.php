@@ -15,8 +15,8 @@
         <div class="row justify-content-center mt-5 ">
             <div class="col col-lg-6 p-10 text-bg-light py-3 px-5">
                 <div class="d-flex justify-content-center gap-3">
-                <img src="https://laravel.com/img/logomark.min.svg" alt="">
-                <img src="https://laravel.com/img/logotype.min.svg" alt="">
+                    <img src="https://laravel.com/img/logomark.min.svg" alt="">
+                    <img src="https://laravel.com/img/logotype.min.svg" alt="">
                 </div>
                 <h4 class="text-center fw-bold mt-3">Congrats! {{$user->name}},</h4>
                 <p class="text-center">You have successful created an account account. Enjoy your day :)</p>

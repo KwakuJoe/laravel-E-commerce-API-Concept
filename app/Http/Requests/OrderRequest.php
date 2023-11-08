@@ -34,7 +34,7 @@ class OrderRequest extends FormRequest
             // 'status' => 'required|string',
             'order_items' => 'required|array',
             // 'order_items.*.order_id' => 'required|unique:order_items,order_id',
-            'order_items.*.product_id' => 'required|numeric',
+            'order_items.*.product_id' => 'required|numeric|exists:products,id',
             'order_items.*.quantity' => 'required|numeric',
             'order_items.*.price' => 'required|numeric'
         ];

@@ -22,6 +22,12 @@ class Product extends Model
         'price',
     ] ;
 
+    protected $casts = [
+        // 'order_date' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
         // protected $casts = [
     //     "is_done" => "boolean"
     // ];
